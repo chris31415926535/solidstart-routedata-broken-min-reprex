@@ -1,30 +1,66 @@
-# SolidStart
+# The Problem
 
-Everything you need to build a Solid project, powered by [`solid-start`](https://start.solidjs.com);
+I'm trying to get route-based data loading to work.
 
-## Creating a project
+As per [the documentation](https://start.solidjs.com/core-concepts/data-loading), it seems like it's supposed to load `routeData()` along the route path and expose it to each segment along the requested path when you run `useRouteData()`.
 
-```bash
-# create a new project in the current directory
-npm init solid@latest
+But in this silly minimal example I can't get the `routeData()` to pass from a single top segment to a single lower segment.
 
-# create a new project in my-app
-npm init solid@latest my-app
+Here's the top segment at ~/test1/index.tsx:
+
+```
+// ~/test1/index.tsx
+import { createRouteData, useRouteData } from "solid-start";
+
+export function routeData() {
+    const test1 = createRouteData(() => {
+        return "test1";
+    });
+    return { test1 };
+}
+
+export default function Testing() {
+
+    const { test1 } = useRouteData<typeof routeData>();
+
+    return (
+        <main>
+            <p>testing top page</p>
+            <p>{test1()}</p>
+        </main>
+    )
+}
 ```
 
-## Developing
+Here's the lower segment at ~/test1/test2/index.tsx:
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```
+// /routes/test1/test2/index.tsx
 
-```bash
-npm run dev
+import { createRouteData, useRouteData } from "solid-start";
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+export function routeData() {
+    const test2 = createRouteData(async () => {
+        return "test2";
+    });
+    return { test2 }
+}
+
+export default function Test2() {
+    // test1 doesn't load
+    const { test1, test2 } = useRouteData();
+    // when we log, we only see test2
+    const data = useRouteData();
+    console.log(data)
+    return (
+        <main>
+            {/* <p>{test1()}</p> // this crashes!!! */}
+            <p>{test2()}</p>
+        </main>
+    )
+}
 ```
 
-## Building
+In test2.tsx, `test1` isn't visible. It doesn't seem to be loading even though it's in test1.tsx's route path.
 
-Solid apps are built with _adapters_, which optimise your project for deployment to different environments.
-
-By default, `npm run build` will generate a Node app that you can run with `npm start`. To use a different adapter, add it to the `devDependencies` in `package.json` and specify in your `vite.config.js`.
+Why?!
